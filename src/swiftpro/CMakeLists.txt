@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(spider_robot)
+project(swiftpro)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -10,7 +10,10 @@ project(spider_robot)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  serial
   std_msgs
+  tf
+  sensor_msgs
   message_generation
 )
 
@@ -21,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-catkin_python_setup()
+# catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -33,10 +36,10 @@ catkin_python_setup()
 ##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
 ## * In the file package.xml:
 ##   * add a build_depend tag for "message_generation"
-##   * add a build_depend and a exec_depend tag for each package in MSG_DEP_SET
+##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
 ##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
 ##     but can be declared for certainty nonetheless:
-##     * add a exec_depend tag for "message_runtime"
+##     * add a run_depend tag for "message_runtime"
 ## * In this file (CMakeLists.txt):
 ##   * add "message_generation" and every package in MSG_DEP_SET to
 ##     find_package(catkin REQUIRED COMPONENTS ...)
@@ -48,16 +51,18 @@ catkin_python_setup()
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  SwiftproState.msg
+  position.msg
+  angle4th.msg
+  status.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
-#   Service1.srv
+#   fk.srv
 #   Service2.srv
 # )
 
@@ -69,19 +74,18 @@ catkin_python_setup()
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
 ################################################
-
 ## To declare and build dynamic reconfigure parameters within this
 ## package, follow these steps:
 ## * In the file package.xml:
-##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
+##   * add a build_depend and a run_depend tag for "dynamic_reconfigure"
 ## * In this file (CMakeLists.txt):
 ##   * add "dynamic_reconfigure" to
 ##     find_package(catkin REQUIRED COMPONENTS ...)
@@ -99,14 +103,14 @@ catkin_python_setup()
 ###################################
 ## The catkin_package macro generates cmake config files for your package
 ## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if your package contains header files
+## INCLUDE_DIRS: uncomment this if you package contains header files
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES spider_robot
-#  CATKIN_DEPENDS roscpp rospy rosserial_arduino rosserial_client std_msgs
+  INCLUDE_DIRS include
+  LIBRARIES swiftpro
+  CATKIN_DEPENDS roscpp rospy std_msgs tf sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -123,7 +127,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/spider_robot.cpp
+#   src/${PROJECT_NAME}/swiftpro.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -134,23 +138,39 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/spider_robot_node.cpp)
-
+# add_executable(${PROJECT_NAME}_node src/swiftpro_node.cpp)
+add_executable(swiftpro_write_node src/swiftpro_write_node.cpp)
+add_executable(swiftpro_moveit_node src/swiftpro_moveit_node.cpp)
+add_executable(swiftpro_rviz_node src/swiftpro_rviz_node.cpp)
+add_executable(swiftpro_read_node src/swiftpro_read_node.cpp)
+add_executable(swiftpro_control src/swiftpro_control.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+#set_target_properties(swiftpro_write_node PROPERTIES OUTPUT_NAME write PREFIX "")
+#set_target_properties(swiftpro_moveit_node PROPERTIES OUTPUT_NAME moveit PREFIX "")
+#set_target_properties(swiftpro_rviz_node PROPERTIES OUTPUT_NAME rviz PREFIX "")
+#set_target_properties(swiftpro_read_node PROPERTIES OUTPUT_NAME read PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_dependencies(swiftpro_write_node swiftpro_generate_messages_cpp)
+add_dependencies(swiftpro_moveit_node swiftpro_generate_messages_cpp)
+add_dependencies(swiftpro_rviz_node swiftpro_generate_messages_cpp)
+add_dependencies(swiftpro_read_node swiftpro_generate_messages_cpp)
+add_dependencies(swiftpro_control swiftpro_generate_messages_cpp)
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-
+target_link_libraries(swiftpro_write_node ${catkin_LIBRARIES})
+target_link_libraries(swiftpro_moveit_node ${catkin_LIBRARIES})
+target_link_libraries(swiftpro_rviz_node ${catkin_LIBRARIES})
+target_link_libraries(swiftpro_read_node ${catkin_LIBRARIES})
+target_link_libraries(swiftpro_control ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############
@@ -191,10 +211,19 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_spider_robot.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_swiftpro.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+include_directories(include/swiftpro)
+#add_library(MyRobot src/MyRobot.cpp)
+#add_executable(MyRobot src/MyRobot.cpp)
+#target_link_libraries(MyRobot ${catkin_LIBRARIES})
+
+#link_directories(src)
+#install(TARGETS  MyRobot
+#	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})

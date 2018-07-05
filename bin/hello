@@ -1,0 +1,6 @@
+#! /usr/bin/env python
+
+import PythonTest_package.hello
+
+if __name__ == '__main__':
+	PythonTest_package.hello.say('my friend!')
